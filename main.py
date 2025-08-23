@@ -1,7 +1,7 @@
-from src.analysis_engine import RuleBasedEngine, SearchBasedEngine
-from src.board_recognizer import TraditionalRecognizer, YOLORecognizer
-from src.image_capture import ScreenCapture
-from src.user_report import ConsoleReport, OverlayReport
+from src.engine.analysis_engine import RuleBasedEngine, SearchBasedEngine
+from src.engine.board_recognizer import TraditionalRecognizer, YOLORecognizer
+from src.engine.image_capture import ScreenCapture
+from src.engine.user_report import ConsoleReport, OverlayReport
 
 
 class GobangAssistant:
