@@ -169,8 +169,12 @@ def save_ndarray(image: Optional[np.ndarray],
         return False
 
 
-def print_board(board_state: np.ndarray):
-    # 打印棋盘到控制台
-    symbols = {0: "·", 1: "●", 2: "○"}
-    for row in board_state:
-        print(" ".join([symbols[cell] for cell in row]))
+def gtp_2_np(gtp, size):
+    column_letter = gtp[0].upper()
+    row_number = int(gtp[1:])
+    if column_letter < 'I':
+        col = ord(column_letter) - ord('A')
+    else:
+        col = ord(column_letter) - ord('A') - 1  # 跳过I
+    row = size - row_number
+    return row, col

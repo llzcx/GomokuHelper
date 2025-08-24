@@ -1,10 +1,4 @@
-import cv2
-import numpy as np
-
 from src.engine.image_capture import ScreenCapture
-from PIL import Image
-from typing import Tuple, Optional
-
 
 if __name__ == '__main__':
     capture = ScreenCapture()

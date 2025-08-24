@@ -4,6 +4,8 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 
+from src.engine.board import ChessBoard, BLACK, WHITE
+
 
 class BoardRecognizer(ABC):
     """棋盘识别抽象基类"""
@@ -14,7 +16,7 @@ class BoardRecognizer(ABC):
         pass
 
     @abstractmethod
-    def recognize(self, image: np.ndarray) -> Tuple[Optional[np.ndarray], dict]:
+    def recognize(self, image: np.ndarray) -> Tuple[Optional[ChessBoard], dict]:
         """
         识别棋盘状态
 
@@ -80,7 +82,7 @@ class AdvancedBoardRecognizer(BoardRecognizer):
                 y = int(start + i * cell_size)
                 self.intersection_points[i, j] = (x, y)
 
-    def recognize(self, image: np.ndarray) -> Tuple[Optional[np.ndarray], dict]:
+    def recognize(self, image: np.ndarray) -> Tuple[Optional[ChessBoard], dict]:
         if not self.initialized:
             return None, {"confidence": 0.0, "error": "Recognizer not initialized"}
 
@@ -93,7 +95,8 @@ class AdvancedBoardRecognizer(BoardRecognizer):
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
 
             # 初始化棋盘状态
-            board_state = np.zeros((self.config["grid_size"], self.config["grid_size"]), dtype=np.int8)
+            board_size = self.config["grid_size"]
+            board_state = ChessBoard(size=board_size)
             total_confidence = 0.0
             piece_count = 0
 
@@ -112,24 +115,24 @@ class AdvancedBoardRecognizer(BoardRecognizer):
 
                     # 判断棋子类型
                     if avg_brightness < self.config["black_threshold"]:
-                        board_state[i, j] = 1  # 黑子
+                        board_state.place_piece(i, j, BLACK)  # 黑子
                         total_confidence += 0.95
                         piece_count += 1
                     elif avg_brightness > self.config["white_threshold"]:
-                        board_state[i, j] = 2  # 白子
+                        board_state.place_piece(i, j, WHITE)  # 白子
                         total_confidence += 0.95
                         piece_count += 1
                     # 否则为空格子（0）
 
             # 计算平均置信度
-            total_cells = self.config["grid_size"] * self.config["grid_size"]
+            total_cells = board_size * board_size
             avg_confidence = total_confidence / total_cells if total_cells > 0 else 0
 
             meta_info = {
                 "confidence": round(avg_confidence, 3),
-                "piece_count": piece_count,
-                "black_count": np.sum(board_state == 1),
-                "white_count": np.sum(board_state == 2),
+                "piece_count": board_state.count_pieces(BLACK) + board_state.count_pieces(WHITE),
+                "black_count": board_state.count_pieces(BLACK),
+                "white_count": board_state.count_pieces(WHITE),
                 "image_size": (image.shape[1], image.shape[0]),
                 "parameters_used": self.config.copy()
             }
