@@ -36,14 +36,7 @@ class AdvancedBoardRecognizer(BoardRecognizer):
     def __init__(self):
         self.initialized = False
         # 基础配置 - 基于提供的精确参数
-        self.config = {
-            "grid_size": 15,  # 15x15棋盘
-            "cell_size": 89,  # 每个格子的尺寸
-            "piece_size": 69,  # 棋子尺寸
-            "image_size": 1314,  # 图片尺寸
-            "black_threshold": 0.2,  # 黑色阈值
-            "white_threshold": 0.7  # 白色阈值
-        }
+        self.config = {}
         self.info = {
             "name": "Precise Parameter-based Board Recognizer",
             "version": "1.0",

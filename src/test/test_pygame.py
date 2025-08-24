@@ -1,33 +1,54 @@
-import os
-import pygame
-import ctypes
+import sys
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QPainter, QBrush, QColor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 
-# 设置窗口位置 (例如：屏幕左上角位置为 (100, 100))
-os.environ['SDL_VIDEO_WINDOW_POS'] = "100,100"
+# Global variables for circle parameters
+circle_radius = 50
+outline_width = 2
+outline_color = Qt.white
 
-# 初始化 Pygame
-pygame.init()
 
-# 创建窗口 (宽 800，高 600)
-screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption("Pygame 窗口指定位置显示")
+class GameOverlay(QWidget):
+    def __init__(self):
+        super().__init__()
 
-# 确保窗口置顶（可选）
-hwnd = pygame.display.get_wm_info()['window']
-ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
 
-# 主循环
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.geometry()
 
-    # 填充背景颜色
-    screen.fill((0, 128, 255))
+        screen_width = screen_geometry.width()
+        screen_height = screen_geometry.height()
 
-    # 更新显示
-    pygame.display.flip()
+        self.setGeometry(0, 0, screen_width, screen_height)  # Set the overlay size to match the screen
+        self.show()
 
-# 退出 Pygame
-pygame.quit()
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # Draw a transparent background
+        painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
+        painter.drawRect(self.rect())
+
+        # Calculate the circle's center position
+        circle_center_x = self.width() // 2
+        circle_center_y = self.height() // 2
+
+        # Draw the circle outline
+        painter.setPen(QColor(outline_color))
+        painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
+        painter.drawEllipse(circle_center_x - circle_radius, circle_center_y - circle_radius,
+                            circle_radius * 2, circle_radius * 2)
+
+
+def main():
+    app = QApplication(sys.argv)
+    overlay = GameOverlay()
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()
