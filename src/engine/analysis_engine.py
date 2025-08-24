@@ -374,7 +374,7 @@ class KatagoAnalysisEngine:
         katago_path = config.get('katago_path')
         model_path = config.get('model_path')
         config_path = config.get('config_path')
-        rule = config.get('rule', 'RENJU')
+        rule = config.get('rule')
 
         # 根据规则选择配置字符串
         rule_configs = {
