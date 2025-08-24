@@ -21,7 +21,7 @@ top = 69  # 棋盘距离顶部距离
 katago_path = r"D:\project\model\KataGomo20250206\engine\gom15x_trt.exe"
 model_path = r"D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz"
 config_path = r"D:\project\py\gomoku\src\engine\algorithm\katago\engine.cfg"
-rule = "RENJU"
+rule = "FREESTYLE"
 
 recognizer = AdvancedBoardRecognizer()
 capture = ScreenCapture()
@@ -61,11 +61,12 @@ def update_task():
                 image = capture.capture_frame()
                 board, meta_info = recognizer.recognize(image)
                 if board.is_effective_chessboard():
-                    best, gtp, info = katago.analyze(board)
-                    logging.info(f"最佳走法: {best}")
-                    logging.info(f"GTP命令: {gtp}")
+                    player ,moves, info = katago.analyze(board)
+                    player2ch = "黑方" if player == "B" else "白方"
+                    logging.info(f"当前执棋: {player2ch}")
+                    logging.info(f"最佳走法: {moves}")
                     logging.info(f"分析详情: {info}")
-                    report.update(image, board, best, info)
+                    report.update(image, board, moves, info)
                     time.sleep(2)
                 else:
                     logging.warning(f"无法识别有效棋盘（当前尺寸: {board.get_size()}）")

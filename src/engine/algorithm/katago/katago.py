@@ -54,7 +54,7 @@ class KataGo:
     def close(self):
         self.katago.stdin.close()
 
-    def query(self, initial_board: ChessBoard, max_visits=None):
+    def query(self, initial_board: ChessBoard, max_visits=None, initial_player="b"):
 
         query = {"id": str(self.query_counter)}
         self.query_counter += 1
@@ -88,6 +88,7 @@ class KataGo:
         query["boardXSize"] = board_size
         query["boardYSize"] = board_size
         query["includePolicy"] = True
+        query["initialPlayer"] = initial_player
         if max_visits is not None:
             query["maxVisits"] = max_visits
 
@@ -103,6 +104,7 @@ class KataGo:
                 raise Exception("Unexpected katago exit")
             line = self.katago.stdout.readline()
             line = line.decode().strip()
+        print(f"query_raw json line:\n {line}")
         response = json.loads(line)
         return response
 

@@ -5,6 +5,7 @@ from typing import Optional
 import cv2
 import numpy as np
 from PIL import Image
+from PyQt5.QtGui import QColor
 
 
 def to_ndarray(image_path: str) -> Optional[np.ndarray]:
@@ -178,3 +179,22 @@ def gtp_2_np(gtp, size):
         col = ord(column_letter) - ord('A') - 1  # 跳过I
     row = size - row_number
     return row, col
+
+def get_win_rate_color(win_rate):
+    """
+    根据胜率返回对应的QColor颜色对象
+    参数:
+        win_rate (float): 胜率百分比值（0-100）
+    返回:
+        QColor: 对应的颜色对象
+    """
+    if win_rate*100 > 95:
+        return QColor(255, 0, 0, 200)    # 红色
+    elif win_rate > 85:
+        return QColor(255, 165, 0, 200)  # 橙色
+    elif win_rate > 75:
+        return QColor(128, 0, 128, 200)  # 紫色
+    elif win_rate > 50:
+        return QColor(0, 0, 255, 200)    # 蓝色
+    else:
+        return QColor(255, 255, 255, 200) # 白色

@@ -6,9 +6,8 @@ from typing import Tuple, List
 import numpy as np
 
 from src.engine.algorithm.katago.katago import KataGo
-from src.engine.board import ChessBoard
+from src.engine.board import ChessBoard, BLACK, MoveItem
 from src.engine.util import gtp_2_np
-
 
 class AnalysisEngine:
     """分析引擎抽象基类"""
@@ -400,37 +399,32 @@ class KatagoAnalysisEngine:
 
         return True
 
-    def analyze(self, board: ChessBoard) -> Tuple[Optional[Tuple[int, int]], str, Dict[str, Any]]:
+    def analyze(self, board: ChessBoard) -> Tuple[str, List[MoveItem], Dict[str, Any]]:
         try:
             # 打印棋盘状态
-            print(board.render_numpy_board())
+            print(f"本次请求棋盘状态:\n{board.render_numpy_board()}")
 
             # 调用分析引擎
-            analysis_result = self.instance.query(initial_board=board)
-            print(analysis_result)
+            analysis_result = self.instance.query(initial_board=board, initial_player= "b" if board.determine_current_player() == BLACK  else "w")
 
             # 检查是否有分析结果
             if "error" in analysis_result:
                 print(analysis_result["error"])
-                return None, "", analysis_result
+                return "",[], analysis_result
 
             # 获取最佳着法
-            best_move = analysis_result["moveInfos"][0].get('move')
             current_player = analysis_result["rootInfo"].get('currentPlayer')
-
-            row, col = gtp_2_np(best_move, board.get_size())
-
-            # 确保坐标在有效范围内
-            if 0 <= row < board.get_size() and 0 <= col < board.get_size():
-                best_move_coord = (row, col)
-                return best_move_coord, current_player+","+best_move, analysis_result
-            else:
-                print(f"Invalid move coordinates: {best_move} -> ({row}, {col})")
-                return None, "", analysis_result
+            best_move_list = []
+            for moveInfo in analysis_result["moveInfos"][:7]:
+                best_move = moveInfo.get('move')
+                row, col = gtp_2_np(best_move, board.get_size())
+                best_move_list.append(MoveItem(move=(row, col), gtp=best_move, visits=moveInfo.get('visits'),
+                             weight=moveInfo.get('weight'), winrate=moveInfo.get('winrate')))
+            return current_player, best_move_list, analysis_result
 
         except Exception as e:
             print(f"Analysis failed: {e}")
-            return None, "", {}
+            return "", [], {}
 
     def get_engine_info(self) -> Dict[str, Any]:
         # 返回引擎信息

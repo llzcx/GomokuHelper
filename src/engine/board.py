@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 from typing import Optional, Tuple, List
 
@@ -116,12 +118,22 @@ class ChessBoard:
             return WHITE
 
     def render_numpy_board(self):
-        """打印棋盘：列标题 + 倒序行号（15到1） + 保持数组原始顺序的内容"""
-        # 1. 打印列标题（A B C ... P）
-        col_titles = [chr(ord('A') + i) for i in range(16)]  # 生成A-P列标题
-        print(f"    {' '.join(col_titles)}")
+        """生成棋盘字符串：列标题 + 倒序行号（15到1） + 保持数组原始顺序的内容"""
+        # 用于存储整个棋盘的字符串
+        board_str = []
 
-        # 2. 按15到1的顺序打印行号，但使用原始数组顺序
+        # 1. 生成列标题（A B C ... P）
+        col_titles = []
+        for i in range(15):  # 仅生成15列
+            if i < 8:
+                col_titles.append(chr(ord('A') + i))  # A-H
+            else:
+                col_titles.append(chr(ord('A') + i + 1))  # 跳过I，直接从J开始（J-P）
+
+        # 添加列标题行
+        board_str.append(f"    {' '.join(col_titles)}")
+
+        # 2. 按15到1的顺序生成行号，但使用原始数组顺序
         for display_row_num in range(self.size, 0, -1):
             # 计算显示行号对应的数组索引
             # 显示行15 → 索引0，显示行1 → 索引14
@@ -140,8 +152,22 @@ class ChessBoard:
                 else:
                     row_chars.append('.')
 
-            # 打印当前行
-            print(f"{formatted_row_num}  {' '.join(row_chars)}")
+            # 将当前行添加到字符串列表
+            board_str.append(f"{formatted_row_num}  {' '.join(row_chars)}")
+
+        # 拼接所有行，用换行符分隔
+        return '\n'.join(board_str)
 
     def get_size(self) -> int:
         return self.board.shape[0]
+
+@dataclass
+class MoveItem:
+    move: Tuple[int, int]
+    gtp: str
+    visits: int
+    weight: int
+    winrate: float
+
+    def __str__(self):
+        return f"Move{self.move}({self.gtp}): v{self.visits} w{self.weight} {self.winrate:.1%}"

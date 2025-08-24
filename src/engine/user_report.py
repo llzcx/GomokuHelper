@@ -1,14 +1,17 @@
+import json
 import sys
 import threading
 import time
+import traceback
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple, Any, List
 import numpy as np
-from PyQt5.QtCore import Qt, QPoint, QTimer, QRect
+from PyQt5.QtCore import Qt, QPoint, QTimer, QRect, QRectF
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush, QFont
 from PyQt5.QtWidgets import QApplication, QWidget
 
-from src.engine.board import ChessBoard, BLACK
+from src.engine.board import ChessBoard, BLACK, WHITE, MoveItem
+from src.engine.util import get_win_rate_color
 
 
 class UserReport:
@@ -63,11 +66,11 @@ class QTReport(UserReport):
     }
 
     def __init__(self):
-        self.analysis_info = None
-        self.board_state = None
+        self.analysis_info = {}
+        self.board_state : ChessBoard
         self.event_loop_thread = None
         self.overlay = None
-        self.best_move = None
+        self.best_moves : List[MoveItem] = []
         self.app = None
         # 检查是否已经有QApplication实例
         if not QApplication.instance():
@@ -86,13 +89,13 @@ class QTReport(UserReport):
     def update(self,
                image: Optional[np.ndarray],
                board_state: ChessBoard,
-               best_move: Tuple[int, int],
+               best_move: List[MoveItem],
                analysis_info: dict) -> bool:
         """更新界面显示，绘制最佳落子位置"""
         if not self.overlay:
             self.initialize()
         self.board_state = board_state
-        self.best_move = best_move
+        self.best_moves = best_move
         self.analysis_info = analysis_info
 
         self.overlay.update()
@@ -129,58 +132,118 @@ class OverlayWindow(QWidget):
         self.setGeometry(
             self.report.config["left"],
             self.report.config["top"],
-            self.report.config["image_size"],
+            int(self.report.config["image_size"]*1.5),
             self.report.config["image_size"]
         )
         self.show()
 
     def paintEvent(self, event):
-        if not self.report.best_move:
+        if len(self.report.best_moves) == 0:
             return
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)  # 抗锯齿，使圆圈更平滑
 
-        # 获取最佳落子位置
-        x, y = self.report.best_move
+        for item in self.report.best_moves:
+            # 获取最佳落子位置
+            x, y = item.move
 
-        # 计算棋子中心位置
-        config = self.report.config
-        center_x = config["piece_size"] / 2 + config["cell_size"] * x
-        center_y = config["piece_size"] / 2 + config["cell_size"] * y
+            # 计算棋子中心位置
+            config = self.report.config
+            center_x = config["piece_size"] / 2 + config["cell_size"] * x
+            center_y = config["piece_size"] / 2 + config["cell_size"] * y
 
-        # 计算圆圈半径（棋子大小的一半）
-        radius = config["piece_size"] / 2
+            # 计算圆圈半径（棋子大小的一半）
+            radius = config["piece_size"] / 2
 
-        # 设置圆圈样式：红色虚线
-        pen = QPen(QColor(255, 0, 0, 200))  # 半透明红色
-        pen.setWidth(3)
-        pen.setStyle(Qt.DashLine)
-        painter.setPen(pen)
+            # 设置圆圈样式：红色虚线
+            pen = QPen(get_win_rate_color(item.winrate))
+            pen.setWidth(3)
+            pen.setStyle(Qt.DashLine)
+            painter.setPen(pen)
 
-        # 不填充内部
-        painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
+            # 不填充内部
+            painter.setBrush(QBrush(QColor(0, 0, 0, 0)))
 
-        # 绘制圆圈
-        painter.drawEllipse(
-            QPoint(int(center_x), int(center_y)),
-            int(radius),
-            int(radius)
-        )
+            # 绘制圆圈
+            painter.drawEllipse(
+                QPoint(int(center_y), int(center_x)),
+                int(radius),
+                int(radius)
+            )
 
-        # 以下是新增的文本绘制逻辑
-        # 设置文本颜色和字体
-        text_pen = QPen(QColor(0, 0, 0))  # 黑色文本
-        painter.setPen(text_pen)
+            # 设置文本颜色和字体（改为绿色）
+            text_pen = QPen(QColor(0, 255, 0, 255))  # 绿色不透明
+            painter.setPen(text_pen)
 
-        font = QFont()
-        font.setPointSize(12)  # 设置字体大小
-        painter.setFont(font)
+            # 设置字体大小
+            font = painter.font()
+            font.setPointSize(8)  # 可根据需要调整大小
+            painter.setFont(font)
 
-        current_player_text = "执黑" if self.report.analysis_info["rootInfo"].get('currentPlayer') == BLACK else "执白"
-        text = self.report.board_state.render_numpy_board() + "\n" + current_player_text
-        rect = QRect(40, 40, 200, 100)  # x, y, width, height
-        painter.drawText(rect, Qt.AlignLeft | Qt.AlignTop,text)
+            # 准备要显示的文本
+            text = f"{item.visits}\n{item.winrate:.2%}"
+
+            # 计算文本位置（居中显示）
+            text_rect = QRectF(
+                center_y - radius,
+                center_x - radius,
+                radius * 2,
+                radius * 2
+            )
+
+            # 绘制文本（居中对齐）
+            painter.drawText(
+                text_rect,
+                Qt.AlignCenter,
+                text
+            )
+
+        left = self.report.config["image_size"]
+        top = 0
+        try:
+            # 设置文本颜色和字体
+            text_pen = QPen(QColor(0, 0, 0))  # 黑色文本
+            painter.setPen(text_pen)
+
+            font = QFont()
+            font.setPointSize(12)  # 设置字体大小
+            painter.setFont(font)
+
+            # 获取当前玩家信息
+            player_info = "黑方" if self.report.board_state.determine_current_player() == BLACK else "白方"
+
+            # 获取棋盘状态并转换为适合显示的字符串
+            board_text = self.report.board_state.render_numpy_board()
+
+            # 获取当前最佳移动信息
+            gtp_text = ""
+            for item in self.report.best_moves:
+                gtp_text = gtp_text + str(item) + "\n"
+
+            # 组合文本
+            text = f"{board_text}\n当前执棋: {player_info}\n{gtp_text}"
+
+            # 先计算文本所需的空间（临时使用左上角坐标进行计算）
+            text_rect = painter.boundingRect(QRect(left, top, 400, 300),
+                                             Qt.AlignLeft | Qt.AlignTop,
+                                             text)
+
+            # 动态调整矩形大小，基于计算出的文本尺寸
+            rect_width = text_rect.width() + 20  # 增加20px内边距
+            rect_height = text_rect.height() + 20
+            rect = QRect(left, top, rect_width, rect_height)
+
+            # 绘制背景矩形以便阅读
+            painter.fillRect(rect, QColor(255, 255, 255, 200))  # 白色半透明背景
+            painter.drawRect(rect)  # 绘制边框
+
+            # 绘制文本（在矩形内左对齐、顶部对齐）
+            painter.drawText(rect, Qt.AlignLeft | Qt.AlignTop, text)
+
+        except Exception as e:
+            traceback.print_exc()
+            print(f"文本绘制错误: {str(e)}")
 
 
 def update_task():
@@ -189,7 +252,12 @@ def update_task():
 
     # 主程序可以继续执行其他任务
     for i in range(5):
-        report.update(None, board, (i, 7), {})
+        board.place_piece(i,7,BLACK if i % 2 == 0 else WHITE)
+        report.update(None, board, (i, 7), {
+            "rootInfo": {
+                'currentPlayer': 'B' if i % 2 == 0 else 'W'
+            }
+         })
         print(f"主程序继续运行... {i + 1}")
         time.sleep(1)
 
