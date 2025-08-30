@@ -5,7 +5,7 @@ from typing import Tuple, List
 
 import numpy as np
 
-from src.engine.algorithm.katago.katago import KataGo
+from src.engine.algorithm.katago.katagoanalysisengine import KataGoAnalysisEngine
 from src.engine.board import ChessBoard, BLACK, MoveItem
 from src.engine.util import gtp_2_np
 
@@ -386,7 +386,7 @@ class KatagoAnalysisEngine:
 
         # 初始化KataGo引擎
         try:
-            katago = KataGo(
+            katago = KataGoAnalysisEngine(
                 katago_path_=katago_path,
                 config_path_=config_path,
                 model_path_=model_path,

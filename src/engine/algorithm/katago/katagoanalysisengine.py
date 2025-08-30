@@ -24,7 +24,7 @@ def sgfmill_to_str(move_: Move) -> str:
     return "ABCDEFGHJKLMNOPQRSTUVWXYZ"[x] + str(y + 1)
 
 
-class KataGo:
+class KataGoAnalysisEngine:
 
     def __init__(self, katago_path_: str, config_path_: str, model_path_: str, additional_args=None):
         if additional_args is None:
@@ -132,8 +132,8 @@ if __name__ == "__main__":
     str2 = "basicRule=RENJU"
     str3 = "basicRule=STANDARD"
 
-    katago = KataGo(katago_path, config_path, model_path,
-                    additional_args=["-override-config", str2])
+    katago = KataGoAnalysisEngine(katago_path, config_path, model_path,
+                                  additional_args=["-override-config", str2])
 
     board = sgfmill.boards.Board(15)
     komi = 0
