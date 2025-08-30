@@ -2,7 +2,7 @@ import logging
 import threading
 import time
 
-from src.engine.analysis_engine import KatagoAnalysisEngine
+from src.engine.analysis_engine import KatagoEngine
 from src.engine.board_recognizer import AdvancedBoardRecognizer
 from src.engine.image_capture import ScreenCapture
 from src.engine.user_report import QTReport
@@ -21,17 +21,17 @@ top = 69  # 棋盘距离顶部距离
 katago_path = r"D:\project\model\KataGomo20250206\engine\gom15x_trt.exe"
 model_path = r"D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz"
 config_path = r"D:\project\model\KataGomo20250206\engine.cfg"
-#rule = "FREESTYLE"
-rule = "RENJU"
+rule = "FREESTYLE"
+#rule = "RENJU"
 recognizer = AdvancedBoardRecognizer()
 capture = ScreenCapture()
-katago = KatagoAnalysisEngine()
+katago = KatagoEngine()
 report = QTReport()
 
 def update_task():
     # 初始化组件并添加日志
     try:
-        logging.info("程序启动，开始初始化组件...")
+        logging.info(f"程序启动,当前模式为: {rule}，开始初始化组件...")
         recognizer.initialize(config={
             "grid_size": grid_size,
             "cell_size": cell_size,
@@ -61,12 +61,13 @@ def update_task():
                 image = capture.capture_frame()
                 board, meta_info = recognizer.recognize(image)
                 if board.is_effective_chessboard():
-                    player ,moves, info = katago.analyze(board)
-                    player2ch = "黑方" if player == "B" else "白方"
+                    player, moves, info = katago.analyze(board)
+                    player2ch = "黑方" if player == "B" else "白方" if player == "W" else "PASS"
                     logging.info(f"当前执棋: {player2ch}")
-                    logging.info(f"最佳走法: {moves}")
-                    logging.info(f"分析详情: {info}")
-                    report.update(image, board, moves, info)
+                    if player2ch != "PASS":
+                        logging.info(f"最佳走法: {moves}")
+                        logging.info(f"分析详情: {info}")
+                        report.update(image, board, moves, info)
                     time.sleep(2)
                 else:
                     time.sleep(2)

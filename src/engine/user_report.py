@@ -66,11 +66,12 @@ class QTReport(UserReport):
     }
 
     def __init__(self):
+        self.board_state = None
         self.analysis_info = {}
-        self.board_state : ChessBoard
+        self.board_state: ChessBoard
         self.event_loop_thread = None
         self.overlay = None
-        self.best_moves : List[MoveItem] = []
+        self.best_moves: List[MoveItem] = []
         self.app = None
         # 检查是否已经有QApplication实例
         if not QApplication.instance():
@@ -132,7 +133,7 @@ class OverlayWindow(QWidget):
         self.setGeometry(
             self.report.config["left"],
             self.report.config["top"],
-            int(self.report.config["image_size"]*1.5),
+            int(self.report.config["image_size"] * 1.5),
             self.report.config["image_size"]
         )
         self.show()
@@ -252,12 +253,12 @@ def update_task():
 
     # 主程序可以继续执行其他任务
     for i in range(5):
-        board.place_piece(i,7,BLACK if i % 2 == 0 else WHITE)
+        board.place_piece(i, 7, BLACK if i % 2 == 0 else WHITE)
         report.update(None, board, (i, 7), {
             "rootInfo": {
                 'currentPlayer': 'B' if i % 2 == 0 else 'W'
             }
-         })
+        })
         print(f"主程序继续运行... {i + 1}")
         time.sleep(1)
 

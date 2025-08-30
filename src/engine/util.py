@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from typing import Optional
@@ -6,6 +7,8 @@ import cv2
 import numpy as np
 from PIL import Image
 from PyQt5.QtGui import QColor
+
+from src.engine.board import BLACK, WHITE
 
 
 def to_ndarray(image_path: str) -> Optional[np.ndarray]:
@@ -180,6 +183,21 @@ def gtp_2_np(gtp, size):
     row = size - row_number
     return row, col
 
+
+def np_to_gtp(row, col, size):
+    gtp_row = size - row
+    if col < 8:  # A-H
+        column_letter = chr(ord('A') + col)
+    else:  # J-T (跳过 I)
+        column_letter = chr(ord('A') + col + 1)
+
+    return f"{column_letter}{gtp_row}"
+
+
+def chess2color(chess):
+    return "B" if chess == BLACK else "W" if chess == WHITE else "PASS"
+
+
 def get_win_rate_color(win_rate):
     """
     根据胜率返回对应的QColor颜色对象
@@ -188,13 +206,72 @@ def get_win_rate_color(win_rate):
     返回:
         QColor: 对应的颜色对象
     """
-    if win_rate*100 > 95:
-        return QColor(255, 0, 0, 200)    # 红色
+    if win_rate * 100 > 95:
+        return QColor(255, 0, 0, 200)  # 红色
     elif win_rate > 85:
         return QColor(255, 165, 0, 200)  # 橙色
     elif win_rate > 75:
         return QColor(128, 0, 128, 200)  # 紫色
     elif win_rate > 50:
-        return QColor(0, 0, 255, 200)    # 蓝色
+        return QColor(0, 0, 255, 200)  # 蓝色
     else:
-        return QColor(255, 255, 255, 200) # 白色
+        return QColor(255, 255, 255, 200)  # 白色
+
+
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        elif hasattr(obj, '__dict__'):
+            return obj.__dict__
+        return super().default(obj)
+
+
+def object_to_json_with_encoder(obj, indent=None):
+    return json.dumps(obj, cls=CustomEncoder, indent=indent, ensure_ascii=False)
+
+
+def parse_gtp_info(gtp_output):
+    """
+    解析围棋GTP分析命令的输出
+
+    参数:
+        gtp_output: 原始的GTP分析命令输出字符串
+
+    返回:
+        list: 包含多个字典的数组，每个字典对应一个info对象
+    """
+    # 分割出各个info条目
+    info_entries = gtp_output.split('info ')[1:]  # 第一个元素是空字符串，所以从1开始取
+
+    info_array = []
+
+    for entry in info_entries:
+        # 去除多余的空格和换行
+        cleaned_entry = ' '.join(entry.split())
+
+        # 解析键值对
+        info_dict = {}
+        tokens = cleaned_entry.split()
+        i = 0
+
+        while i < len(tokens):
+            key = tokens[i]
+
+            # 特殊处理pv和pvVisits，它们的值是数组
+            if key in ['pv', 'pvVisits']:
+                # 找到下一个键的位置，作为值的结束
+                j = i + 1
+                while j < len(tokens) and not tokens[j].isalpha():
+                    j += 1
+                # 将值处理为字符串列表
+                info_dict[key] = tokens[i + 1:j]
+                i = j
+            else:
+                # 普通键值对，统一处理为字符串
+                info_dict[key] = tokens[i + 1] if i + 1 < len(tokens) else ""
+                i += 2
+
+        info_array.append(info_dict)
+
+    return info_array

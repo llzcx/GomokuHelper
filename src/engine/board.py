@@ -15,6 +15,23 @@ class ChessBoard:
         else:
             self.board = np.zeros((size, size), dtype=int)
 
+    def equals(self, other: 'ChessBoard') -> bool:
+        """
+        判断当前棋盘与传入的另一个棋盘是否完全一致
+
+        参数:
+            other: 另一个ChessBoard对象
+
+        返回:
+            如果两个棋盘大小相同且所有位置都相同则返回True，否则返回False
+        """
+        # 首先检查棋盘大小是否相同
+        if self.size != other.size:
+            return False
+
+        # 检查两个棋盘的数组是否完全相同
+        return np.array_equal(self.board, other.board)
+
     def reset(self) -> None:
         self.board = np.zeros((self.size, self.size), dtype=int)
 
@@ -70,7 +87,9 @@ class ChessBoard:
             return np.count_nonzero(self.board == chess)
 
     def is_effective_chessboard(self) -> bool:
-        return abs(np.count_nonzero(self.board == WHITE) - np.count_nonzero(self.board == BLACK)) <= 1
+        count1 = np.count_nonzero(self.board == WHITE)
+        count2 = np.count_nonzero(self.board == BLACK)
+        return abs(count1 - count2) <= 1 and count2 >= count1
 
     def find_pieces(self, player: int) -> List[Tuple[int, int]]:
         positions = []
@@ -160,6 +179,42 @@ class ChessBoard:
 
     def get_size(self) -> int:
         return self.board.shape[0]
+
+    def diff(self, other: 'ChessBoard') -> list:
+        """
+        比较当前棋盘与另一个棋盘的差异。
+        返回一个列表，列表中的每个元素是一个元组，格式为(棋子颜色, 位置坐标)，
+        表示该位置在一个棋盘上有棋子，而在另一个棋盘上没有。
+        """
+        if self.size != other.size:
+            raise ValueError("两个棋盘大小不一致")
+
+        differences = []
+        for i in range(self.size):
+            for j in range(self.size):
+                # 当前棋盘有棋子，另一个棋盘没有
+                if self.board[i, j] != 0 and other.board[i, j] == 0:
+                    differences.append((self.board[i, j], (i, j)))
+                # 另一个棋盘有棋子，当前棋盘没有
+                elif self.board[i, j] == 0 and other.board[i, j] != 0:
+                    differences.append((other.board[i, j], (i, j)))
+        return differences
+
+    def has_extra_pieces(self, other: 'ChessBoard') -> bool:
+        """
+        检查是否存在某个位置，在另一个棋盘上有棋子，而在当前棋盘上没有棋子。
+        存在返回True，不存在返回False。
+        """
+        if self.size != other.size:
+            raise ValueError("两个棋盘大小不一致")
+
+        for i in range(self.size):
+            for j in range(self.size):
+                # 如果另一个棋盘有棋子而当前棋盘没有
+                if other.board[i, j] != 0 and self.board[i, j] == 0:
+                    return True
+        return False
+
 
 @dataclass
 class MoveItem:

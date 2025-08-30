@@ -9,7 +9,9 @@ import numpy as np
 import sgfmill.ascii_boards
 import sgfmill.boards
 
-from src.engine.board import ChessBoard, BLACK, WHITE
+from src.engine.algorithm.algorithm import AlgorithmEngine
+from src.engine.board import ChessBoard, BLACK, WHITE, MoveItem
+from src.engine.util import object_to_json_with_encoder, gtp_2_np
 
 Color = Union[Literal["b"], Literal["w"]]
 Move = Union[None, Literal["pass"], Tuple[int, int]]
@@ -24,14 +26,14 @@ def sgfmill_to_str(move_: Move) -> str:
     return "ABCDEFGHJKLMNOPQRSTUVWXYZ"[x] + str(y + 1)
 
 
-class KataGoAnalysisEngine:
+class KataGoAnalysisEngine(AlgorithmEngine):
 
-    def __init__(self, katago_path_: str, config_path_: str, model_path_: str, additional_args=None):
+    def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None):
         if additional_args is None:
             additional_args = []
         self.query_counter = 0
         katago_ = subprocess.Popen(
-            [katago_path_, "analysis", "-config", config_path_, "-model", model_path_, *additional_args],
+            [katago_path, "analysis", "-config", config_path, "-model", model_path, *additional_args],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -92,7 +94,22 @@ class KataGoAnalysisEngine:
         if max_visits is not None:
             query["maxVisits"] = max_visits
 
-        return self.query_raw(query)
+        analysis_result = self.query_raw(query)
+
+        # 检查是否有分析结果
+        if "error" in analysis_result:
+            print(analysis_result["error"])
+            return "", [], analysis_result
+
+        # 获取最佳着法
+        current_player = analysis_result["rootInfo"].get('currentPlayer')
+        best_move_list = []
+        for moveInfo in analysis_result["moveInfos"][:7]:
+            best_move = moveInfo.get('move')
+            row, col = gtp_2_np(best_move, board_size)
+            best_move_list.append(MoveItem(move=(row, col), gtp=best_move, visits=moveInfo.get('visits'),
+                                           weight=moveInfo.get('weight'), winrate=moveInfo.get('winrate')))
+        return current_player, best_move_list, analysis_result[:7]
 
     def query_raw(self, query: Dict[str, Any]):
         self.katago.stdin.write((json.dumps(query) + "\n").encode())
@@ -107,19 +124,6 @@ class KataGoAnalysisEngine:
         print(f"query_raw json line:\n {line}")
         response = json.loads(line)
         return response
-
-
-class CustomEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        elif hasattr(obj, '__dict__'):
-            return obj.__dict__
-        return super().default(obj)
-
-
-def object_to_json_with_encoder(obj, indent=None):
-    return json.dumps(obj, cls=CustomEncoder, indent=indent, ensure_ascii=False)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 import numpy as np
 
-from src.engine.analysis_engine import KatagoAnalysisEngine
+from src.engine.analysis_engine import KatagoEngine
 from src.engine.board import ChessBoard, WHITE, BLACK
 
 if __name__ == '__main__':
-    katago = KatagoAnalysisEngine()
+    katago = KatagoEngine()
     katago.initialize(config={
         "katago_path": r"D:\project\model\KataGomo20250206\engine\gom15x_trt.exe",
         "model_path": r"D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz",
