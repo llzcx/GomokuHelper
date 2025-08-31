@@ -8,15 +8,15 @@ from src.engine.board_recognizer import AdvancedBoardRecognizer
 from src.engine.image_capture import ScreenCapture
 from src.engine.user_report import QTReport
 
-grid_size = 15  # 15x15棋盘
-cell_size = 89  # 每个格子的尺寸
-piece_size = 69  # 棋子尺寸
-image_size = 1314  # 图片尺寸
-left = 625  # 棋盘距离左边距离
-top = 69  # 棋盘距离顶部距离
+grid_size = 15  # 15x15 Chessboard
+cell_size = 89  # The size of each grid
+piece_size = 69  # Chess size
+image_size = 1314  # image size
+left = 625  # Distance to the left of the chessboard
+top = 69  # Distance from the top of the chessboard
 katago_path = r"D:\project\model\KataGomo20250206\engine\gom15x_trt.exe"
 model_path = r"D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz"
-config_path = r"D:\project\py\gomoku\src\engine\algorithm\katago\gtp_engine.cfg"
+config_path = r"..\engine\algorithm\katago\gtp_engine.cfg"
 #rule = "FREESTYLE"
 rule = "RENJU"
 visits_threshold = 10000

@@ -3,25 +3,15 @@ import logging
 import subprocess
 import time
 from threading import Thread
-from typing import Tuple, Union, Literal, Any, Dict
+from typing import Any, Dict
+from warnings import deprecated
 
 from src.engine.algorithm.algorithm import AlgorithmEngine
 from src.engine.board import ChessBoard, BLACK, WHITE, MoveItem
 from src.engine.util import gtp_2_np
 
-Color = Union[Literal["b"], Literal["w"]]
-Move = Union[None, Literal["pass"], Tuple[int, int]]
 
-
-def sgfmill_to_str(move_: Move) -> str:
-    if move_ is None:
-        return "pass"
-    if move_ == "pass":
-        return "pass"
-    (y, x) = move_
-    return "ABCDEFGHJKLMNOPQRSTUVWXYZ"[x] + str(y + 1)
-
-
+@deprecated("KataGoAnalysisEngine is obsolete, please use KataGoGTPEngine instead")
 class KataGoAnalysisEngine(AlgorithmEngine):
 
     def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None, board_size=15):
@@ -41,7 +31,7 @@ class KataGoAnalysisEngine(AlgorithmEngine):
                 data = katago_.stderr.readline()
                 time.sleep(0)
                 if data:
-                    logging.info("KataGo: " +data.decode())
+                    logging.info("KataGo: " + data.decode())
             data = katago_.stderr.read()
             if data:
                 logging.info("KataGo: " + data.decode())
