@@ -50,7 +50,7 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.async_handler()
         time.sleep(2)
         logging.info("KataGo GTP Engine Initialization successful!")
-        #self.run_scheduled_task()
+        self.run_scheduled_task()
 
     def read_state(self):
         state = True
