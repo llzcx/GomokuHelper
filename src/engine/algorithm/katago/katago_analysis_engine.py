@@ -47,7 +47,6 @@ class KataGoAnalysisEngine(AlgorithmEngine):
         query = {"id": str(self.query_counter)}
         self.query_counter += 1
 
-        # 获取棋盘尺寸
         board_size = initial_board.get_size()
 
         query["initialStones"] = []
@@ -61,9 +60,8 @@ class KataGoAnalysisEngine(AlgorithmEngine):
                 else:
                     continue
 
-                # 将数字坐标转换为字母坐标
                 letter = chr(ord('A') + x)
-                if letter >= 'I':  # 跳过I
+                if letter >= 'I':
                     letter = chr(ord(letter) + 1)
                 number = board_size - y
                 coord = f"{letter}{number}"
@@ -82,12 +80,10 @@ class KataGoAnalysisEngine(AlgorithmEngine):
 
         analysis_result = self.query_raw(query)
 
-        # 检查是否有分析结果
         if "error" in analysis_result:
             logging.info(analysis_result["error"])
             return "", [], analysis_result
 
-        # 获取最佳着法
         current_player = analysis_result["rootInfo"].get('currentPlayer')
         best_move_list = []
         for moveInfo in analysis_result["moveInfos"][:7]:

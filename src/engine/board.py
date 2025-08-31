@@ -167,7 +167,7 @@ class ChessBoard:
         表示该位置在一个棋盘上有棋子，而在另一个棋盘上没有。
         """
         if self.size != other.size:
-            raise ValueError("两个棋盘大小不一致")
+            raise ValueError("Two chessboards of different sizes")
 
         differences = []
         for i in range(self.size):
@@ -184,7 +184,7 @@ class ChessBoard:
         存在返回True，不存在返回False。
         """
         if self.size != other.size:
-            raise ValueError("两个棋盘大小不一致")
+            raise ValueError("Two chessboards of different sizes")
 
         for i in range(self.size):
             for j in range(self.size):
