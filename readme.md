@@ -1,5 +1,9 @@
 # GomokuHelper
-GomokuHelper致力于使用AI协助你游玩任何五子棋游戏。
+
+GomokuHelper 是一款面向 “泛可视化五子棋场景” 的 AI 辅助工具，核心目标是打破游戏客户端限制，为各类可视化五子棋玩法提供 AI 决策支持。现阶段已完成与 KataGo 引擎的对接整合，将其作为 AI 决策核心，通过算法计算输出精准落子方案，助力用户在不同五子棋场景中高效决策。
+
+GomokuHelper is an AI-assisted tool tailored for "pan-visual Gomoku scenarios". Its core goal is to break the limitations of specific game clients and provide AI decision-making support for various visual Gomoku gameplays. At this stage, it has completed the integration with the KataGo engine, which serves as the core of its AI decision-making system. Through algorithmic calculations, it generates accurate move suggestions, helping users make efficient decisions across different Gomoku scenarios.
+
 # 项目介绍
 ![img.png](img/architecture.png)
 ## 支持的数据源类型-DataSource
