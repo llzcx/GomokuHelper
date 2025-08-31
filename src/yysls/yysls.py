@@ -81,8 +81,8 @@ def update_task():
                     time.sleep(2)
 
             except Exception as e:
-                logging.error(f"Loop execution error: {str(e)}", exc_info=True)  # exc_info=True打印堆栈信息
-                time.sleep(5)  # 出错后暂停一段时间再重试
+                logging.error(f"Loop execution error: {str(e)}", exc_info=True)
+                time.sleep(5)
 
     except KeyboardInterrupt:
         logging.info("The user interrupts the program and starts releasing resources...")

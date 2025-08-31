@@ -165,7 +165,7 @@ class KataGoGTPEngine(AlgorithmEngine):
                     raise Exception("Unexpected katago exit")
                 line = self.katago.stderr.readline()
                 line = line.strip()
-            logging.error(f"[GTP Command ERROR] Wrong output: {line}")
+            logging.warn(f"[GTP Command ERROR] Wrong output: {line}")
         logging.info("handler_stderr stop...")
 
     def async_handler(self):
@@ -175,12 +175,10 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.stderr_thread.start()
 
     def get_engine_info(self):
-        # 计算缓存命中率
         hit_rate = self.cache.get_hit_rate()
 
-        # 计算刷新率，处理除以零的情况
         if self.query_total == 0:
-            refresh_rate = 0.0  # 或者可以设置为None并在格式化时处理
+            refresh_rate = 0.0
         else:
             refresh_rate = self.refresh_total / self.query_total
 
