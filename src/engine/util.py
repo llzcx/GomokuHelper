@@ -206,11 +206,11 @@ def get_win_rate_color(win_rate):
     返回:
         QColor: 对应的颜色对象
     """
-    if win_rate * 100 > 95:
+    if win_rate * 100 > 98:
         return QColor(255, 0, 0, 200)  # 红色
-    elif win_rate > 85:
+    elif win_rate > 95:
         return QColor(255, 165, 0, 200)  # 橙色
-    elif win_rate > 75:
+    elif win_rate > 85:
         return QColor(128, 0, 128, 200)  # 紫色
     elif win_rate > 50:
         return QColor(0, 0, 255, 200)  # 蓝色
@@ -275,3 +275,49 @@ def parse_gtp_info(gtp_output):
         info_array.append(info_dict)
 
     return info_array
+
+
+from cachetools import LRUCache
+
+
+class AnalyzedLRUCache(LRUCache):
+    """扩展LRUCache，增加缓存命中/未命中统计功能"""
+
+    def __init__(self, maxsize):
+        super().__init__(maxsize)
+        self.hits = 0  # 命中次数
+        self.misses = 0  # 未命中次数
+
+    def __getitem__(self, key):
+        """重写获取元素的方法，统计命中/未命中"""
+        try:
+            # 尝试获取缓存，成功则命中次数+1
+            value = super().__getitem__(key)
+            self.hits += 1
+            return value
+        except KeyError:
+            # 未命中则未命中次数+1，并抛出异常（保持原LRUCache行为）
+            self.misses += 1
+            raise
+
+    def get(self, key, default=None):
+        """重写get方法，统计命中/未命中"""
+        try:
+            value = super().__getitem__(key)
+            self.hits += 1
+            return value
+        except KeyError:
+            self.misses += 1
+            return default
+
+    def get_hit_rate(self):
+        """计算并返回缓存命中率"""
+        total_accesses = self.hits + self.misses
+        if total_accesses == 0:
+            return 0.0  # 避免除以零
+        return self.hits / total_accesses
+
+    def reset_stats(self):
+        """重置统计数据"""
+        self.hits = 0
+        self.misses = 0

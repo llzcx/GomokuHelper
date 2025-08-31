@@ -84,7 +84,7 @@ class KatagoEngine:
         model_path = config.get('model_path')
         config_path = config.get('config_path')
         rule = config.get('rule')
-
+        board_size = config.get('board_size')
         # 根据规则选择配置字符串
         rule_configs = {
             'FREESTYLE': "basicRule=FREESTYLE",
@@ -99,7 +99,9 @@ class KatagoEngine:
                 katago_path=katago_path,
                 config_path=config_path,
                 model_path=model_path,
-                additional_args=additional_args
+                additional_args=additional_args,
+                board_size=board_size,
+                config=config,
             )
             self.instance = katago
         except Exception as e:

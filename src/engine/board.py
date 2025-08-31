@@ -1,3 +1,4 @@
+import hashlib
 from dataclasses import dataclass
 
 import numpy as np
@@ -63,12 +64,6 @@ class ChessBoard:
 
     def is_valid_position(self, row: int, col: int) -> bool:
         return 0 <= row < self.size and 0 <= col < self.size
-
-    def is_empty(self, row: int, col: int) -> bool:
-        if not self.is_valid_position(row, col):
-            return False
-
-        return self.board[row, col] == 0
 
     def get_board(self) -> np.ndarray:
         return self.board.copy()
@@ -215,6 +210,82 @@ class ChessBoard:
                     return True
         return False
 
+    def is_game_over(self) -> int:
+        """
+        判断当前棋局是否结束
+        返回值:
+            0 - 游戏未结束
+            BLACK(1) - 黑方获胜
+            WHITE(2) - 白方获胜
+        """
+        # 检查所有可能的位置
+        for i in range(self.size):
+            for j in range(self.size):
+                # 跳过空位
+                if self.board[i, j] == 0:
+                    continue
+
+                # 当前位置的棋子颜色
+                current_color = self.board[i, j]
+
+                # 检查水平方向(右)
+                if j + 4 < self.size:
+                    if (self.board[i, j + 1] == current_color and
+                            self.board[i, j + 2] == current_color and
+                            self.board[i, j + 3] == current_color and
+                            self.board[i, j + 4] == current_color):
+                        return current_color
+
+                # 检查垂直方向(下)
+                if i + 4 < self.size:
+                    if (self.board[i + 1, j] == current_color and
+                            self.board[i + 2, j] == current_color and
+                            self.board[i + 3, j] == current_color and
+                            self.board[i + 4, j] == current_color):
+                        return current_color
+
+                # 检查右下对角线
+                if i + 4 < self.size and j + 4 < self.size:
+                    if (self.board[i + 1, j + 1] == current_color and
+                            self.board[i + 2, j + 2] == current_color and
+                            self.board[i + 3, j + 3] == current_color and
+                            self.board[i + 4, j + 4] == current_color):
+                        return current_color
+
+                # 检查左下对角线
+                if i + 4 < self.size and j - 4 >= 0:
+                    if (self.board[i + 1, j - 1] == current_color and
+                            self.board[i + 2, j - 2] == current_color and
+                            self.board[i + 3, j - 3] == current_color and
+                            self.board[i + 4, j - 4] == current_color):
+                        return current_color
+
+        # 检查是否平局(棋盘已满)
+        if np.count_nonzero(self.board) == self.size * self.size:
+            return -1  # 平局
+
+        # 游戏未结束
+        return 0
+
+    def is_empty(self) -> bool:
+        """判断当前棋盘是否为空（无任何落子）
+
+        返回:
+            bool: 如果棋盘为空（所有位置都是0）则返回True，否则返回False
+        """
+        # 检查棋盘上所有元素是否都为0
+        return np.all(self.board == 0)
+
+    def get_hash(self) -> str:
+        """生成当前棋盘状态的唯一hash值
+
+        返回:
+            str: 表示当前棋盘状态的哈希字符串
+        """
+        # 将numpy数组转换为字节流，然后计算MD5哈希值
+        # 这种方式生成的哈希值对于相同的棋盘状态是唯一且一致的
+        board_bytes = self.board.tobytes()
+        return hashlib.md5(board_bytes).hexdigest()
 
 @dataclass
 class MoveItem:

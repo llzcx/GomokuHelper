@@ -1,27 +1,24 @@
-import json
 import subprocess
 import threading
 import time
-from datetime import datetime
 from threading import Thread
-from typing import Tuple, List, Union, Literal, Any, Dict
-
-import numpy as np
-import sgfmill.ascii_boards
-import sgfmill.boards
+from typing import Dict, Any
 
 from src.engine.algorithm.algorithm import AlgorithmEngine
-from src.engine.board import ChessBoard, BLACK, WHITE, MoveItem
-from src.engine.util import np_to_gtp, chess2color, parse_gtp_info, gtp_2_np
+from src.engine.board import ChessBoard, BLACK, MoveItem
+from src.engine.util import np_to_gtp, chess2color, parse_gtp_info, gtp_2_np, AnalyzedLRUCache
 
 
 # ./engine/gom15x_trt.exe gtp -config ./engine.cfg -model ./weights/zhizi_renju28b_s1600.bin.gz -override-config
 # basicRule=RENJU
 class KataGoGTPEngine(AlgorithmEngine):
 
-    def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None):
+    def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None, board_size=15, config: Dict[str, Any] = None):
         self.stdout_thread = None
         self.stderr_thread = None
+        self.board_size = board_size
+        self.visits_threshold = config.get("visits_threshold", 10000)
+        self.cache = AnalyzedLRUCache(maxsize=1000)
         if additional_args is None:
             additional_args = []
         self.query_counter = 0
@@ -36,17 +33,19 @@ class KataGoGTPEngine(AlgorithmEngine):
             universal_newlines=True,
             bufsize=1
         )
-        self.cache_board = None
+        self.cache_board = ChessBoard(size=self.board_size)
         self.katago = katago
-        self.shared_str = ""
+        self.best_moves_shared = None
         self.res_lock = threading.Lock()
         self.running = True
         self.state_lock = threading.Lock()
+        self.query_total = 0
+        self.refresh_total = 0
         print("KataGo GTP Engine is currently undergoing initialization...")
         time.sleep(20)
         self.async_handler()
         time.sleep(2)
-        print("KataGo GTP Engine Initialization successful!...")
+        print("KataGo GTP Engine Initialization successful!")
 
     def read_state(self):
         state = True
@@ -64,18 +63,20 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.katago.stdin.close()
 
     def query(self, initial_board: ChessBoard, initial_player='b'):
+        print(self.get_engine_info())
         # 获取棋盘尺寸
         board_size = initial_board.get_size()
-
+        self.query_total += 1
         diff_list = []
-        if self.cache_board is None or initial_board.has_extra_pieces(self.cache_board):
+        if initial_board.has_extra_pieces(self.cache_board):
             print("=====The chessboard status is inconsistent and needs to be refreshed=====")
-            self.cache_board = ChessBoard(size=initial_board.size)
+            self.cache_board.reset()
             print(f"self.cache_board:\n{self.cache_board.render_numpy_board()}")
             print(f"initial_board   :\n{initial_board.render_numpy_board()}")
             print("=====The chessboard status is inconsistent and needs to be refreshed=====")
             diff_list = initial_board.diff(self.cache_board)
             self.reset()
+            self.refresh_total += 1
         else:
             diff_list = initial_board.diff(self.cache_board)
 
@@ -88,20 +89,21 @@ class KataGoGTPEngine(AlgorithmEngine):
         if not self.cache_board.equals(initial_board):
             raise "System ERROR!!!"
 
-        res_list = self.kata_analyze(self.cache_board.determine_current_player(), 10)
-        current_play = chess2color(self.cache_board.determine_current_player())
-        best_move_list = []
-        for item in res_list[:7]:
-            best_move = item.get('move')
-            if best_move[0] == 'p':
-                continue
-            row, col = gtp_2_np(best_move, board_size)
-            best_move_list.append(MoveItem(move=(row, col), gtp=best_move, visits=int(item.get('visits')),
-                                           weight=item.get('weight'), winrate=float(item.get('winrate'))))
-        return current_play, best_move_list, res_list
+        board_hash = self.cache_board.get_hash()
+        val = self.cache.get(board_hash)
+        if val is not None:
+            current_play, best_move_list = val
+            return current_play, best_move_list, {}
+
+        current_play, best_move_list = self.kata_analyze(self.cache_board.determine_current_player(), 10)
+
+        return current_play, best_move_list, {}
 
     def reset(self):
         self.exec_async("clear_board")
+
+    def stop_kata_analyze(self):
+        self.exec_async("stop")
 
     def play(self, chess, row, col, board_size):
         gtp = np_to_gtp(row, col, board_size)
@@ -111,10 +113,9 @@ class KataGoGTPEngine(AlgorithmEngine):
     def kata_analyze(self, next_step_chess, cal_time):
         chess_color = chess2color(next_step_chess)
         self.exec_async(f"kata-analyze {chess_color} {cal_time} pvVisits true")
-        current = ""
         with self.res_lock:
-            current = self.shared_str
-        return parse_gtp_info(current)
+            current = self.best_moves_shared
+        return current
 
     def exec_async(self, query: str):
         print(f"[EXEC Command] input: {query}")
@@ -130,8 +131,28 @@ class KataGoGTPEngine(AlgorithmEngine):
                     raise Exception("Unexpected katago exit")
                 line = self.katago.stdout.readline()
                 line = line.strip()
+            if len(line.strip()) == 0 or line.strip() == "=":
+                continue
+            if not line.startswith("info"):
+                print(f"Unexpected katago error: {line}")
+                continue
+            res_list = parse_gtp_info(line)
+            best_move_list = []
+            current_play = chess2color(self.cache_board.determine_current_player())
+            for item in res_list[:7]:
+                best_move = item.get('move')
+                if best_move[0] == 'p':
+                    continue
+                row, col = gtp_2_np(best_move, self.cache_board.get_size())
+                best_move_list.append(MoveItem(move=(row, col), gtp=best_move, visits=int(item.get('visits')),
+                                               weight=item.get('weight'), winrate=float(item.get('winrate'))))
+            if len(best_move_list) != 0 and int(best_move_list[0].visits) > self.visits_threshold:
+                self.stop_kata_analyze()
+                board_hash = self.cache_board.get_hash()
+                self.cache[board_hash] = (current_play, best_move_list)
+
             with self.res_lock:
-                self.shared_str = line
+                self.best_moves_shared = (current_play, best_move_list)
         print("handler_stdout stop...")
 
     def handler_stderr(self):
@@ -152,54 +173,17 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.stderr_thread = Thread(target=self.handler_stderr)
         self.stderr_thread.start()
 
+    def get_engine_info(self):
+        # 计算缓存命中率
+        hit_rate = self.cache.get_hit_rate()
 
-if __name__ == "__main__":
-    katago_path = "D:\project\model\KataGomo20250206\engine\gom15x_trt.exe"
-    model_path = "D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz"
-    config_path = "gtp_engine.cfg"
+        # 计算刷新率，处理除以零的情况
+        if self.query_total == 0:
+            refresh_rate = 0.0  # 或者可以设置为None并在格式化时处理
+        else:
+            refresh_rate = self.refresh_total / self.query_total
 
-    str1 = "basicRule=FREESTYLE"
-    str2 = "basicRule=RENJU"
-    str3 = "basicRule=STANDARD"
+        return (f"=============query cache hit rate: {hit_rate:.2f}%=============\n"
+                f"=============query refresh count : {self.refresh_total}次=============\n"
+                f"=============query refresh rate  : {refresh_rate:.2f}%=============")
 
-    katago = KataGoGTPEngine(katago_path, config_path, model_path,
-                             additional_args=["-override-config", str2])
-    board = ChessBoard(size=15)
-    komi = 0
-    moves = [("b", (3, 3))]
-    board.place_piece(3, 3, BLACK)
-
-    print("等待初始化...")
-    time.sleep(20)
-    katago.async_handler()
-    print("初始化成功...")
-
-
-    def print_func():
-        while True:
-            time.sleep(2)
-            with katago.res_lock:
-                print(katago.shared_str)
-
-
-    get_value_thread = Thread(target=print_func)
-    get_value_thread.start()
-    while True:
-        try:
-            user_input = input("请输入内容（输入'exit'退出）：")
-            if user_input.lower() == 'exit':
-                print("程序即将退出...")
-                katago.close()
-                break
-
-            katago.exec_async(user_input)
-            print("------------------------")  # 分隔线
-
-        except KeyboardInterrupt:
-            # 处理Ctrl+C中断
-            print("\n检测到中断信号，程序退出。")
-            break
-        except Exception as e:
-            # 处理其他可能的异常
-            print(f"发生错误：{e}")
-            print("请重新输入...")

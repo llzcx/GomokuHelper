@@ -28,7 +28,7 @@ def sgfmill_to_str(move_: Move) -> str:
 
 class KataGoAnalysisEngine(AlgorithmEngine):
 
-    def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None):
+    def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None, board_size=15):
         if additional_args is None:
             additional_args = []
         self.query_counter = 0
@@ -124,33 +124,3 @@ class KataGoAnalysisEngine(AlgorithmEngine):
         print(f"query_raw json line:\n {line}")
         response = json.loads(line)
         return response
-
-
-if __name__ == "__main__":
-
-    katago_path = "D:\project\model\KataGomo20250206\engine\gom15x_trt.exe"
-    model_path = "D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz"
-    config_path = "engine.cfg"
-
-    str1 = "basicRule=FREESTYLE"
-    str2 = "basicRule=RENJU"
-    str3 = "basicRule=STANDARD"
-
-    katago = KataGoAnalysisEngine(katago_path, config_path, model_path,
-                                  additional_args=["-override-config", str2])
-
-    board = sgfmill.boards.Board(15)
-    komi = 0
-    moves = [("b", (3, 3))]
-
-    display_board = board.copy()
-    for color, move in moves:
-        if move != "pass":
-            row, col = move
-            display_board.play(row, col, color)
-    print(sgfmill.ascii_boards.render_board(display_board))
-
-    print("Query result: ")
-    print(object_to_json_with_encoder(katago.query(board, moves, komi)))
-
-    katago.close()
