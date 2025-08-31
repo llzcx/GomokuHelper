@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,18 +20,9 @@ class ChessBoard:
     def equals(self, other: 'ChessBoard') -> bool:
         """
         判断当前棋盘与传入的另一个棋盘是否完全一致
-
-        参数:
-            other: 另一个ChessBoard对象
-
-        返回:
-            如果两个棋盘大小相同且所有位置都相同则返回True，否则返回False
         """
-        # 首先检查棋盘大小是否相同
         if self.size != other.size:
             return False
-
-        # 检查两个棋盘的数组是否完全相同
         return np.array_equal(self.board, other.board)
 
     def reset(self) -> None:
@@ -58,7 +50,7 @@ class ChessBoard:
 
     def get_piece(self, row: int, col: int) -> int:
         if not (0 <= row < self.size and 0 <= col < self.size):
-            return -1  # 无效位置
+            return -1
 
         return self.board[row, col]
 
@@ -104,27 +96,30 @@ class ChessBoard:
                 self.board = loaded_board
                 return True
             else:
-                print(f"棋盘大小不匹配。期望: {self.size}x{self.size}，实际: {loaded_board.shape}")
+                logging.info(
+                    f"The size of the chessboard does not match. expect: {self.size}x{self.size}，actual: {loaded_board.shape}")
                 return False
         except FileNotFoundError:
-            print(f"文件未找到: {filename}")
+            logging.info(f"File not found: {filename}")
             return False
         except Exception as e:
-            print(f"加载棋盘时出错: {e}")
+            logging.info(f"Error loading chessboard:{e}")
             return False
 
     def determine_current_player(self) -> int:
         board_state = self.board
-        if board_state.shape != (15, 15):
-            raise ValueError("棋盘必须是15x15的numpy数组")
+        if board_state.shape != (self.size, self.size):
+            raise ValueError(f"The chessboard must be a {self.size}x{self.size} numpy array")
 
         black_count = np.sum(board_state == BLACK)
         white_count = np.sum(board_state == WHITE)
 
         if white_count > black_count:
-            raise ValueError(f"无效的棋盘状态：白棋({white_count})比黑棋({black_count})多")
+            raise ValueError(
+                f"Invalid chessboard state: There are more white({white_count}) chess than black({black_count}) chess")
         if black_count - white_count > 1:
-            raise ValueError(f"无效的棋盘状态：黑棋({black_count})比白棋({white_count})多超过1个")
+            raise ValueError(
+                f"Invalid Chessboard State: Black Chess ({black_count}) has more than 1 more than White Chess ({white_count})")
 
         if black_count == white_count:
             return BLACK
@@ -133,30 +128,22 @@ class ChessBoard:
 
     def render_numpy_board(self):
         """生成棋盘字符串：列标题 + 倒序行号（15到1） + 保持数组原始顺序的内容"""
-        # 用于存储整个棋盘的字符串
         board_str = []
 
-        # 1. 生成列标题（A B C ... P）
         col_titles = []
-        for i in range(15):  # 仅生成15列
+        for i in range(15):
             if i < 8:
-                col_titles.append(chr(ord('A') + i))  # A-H
+                col_titles.append(chr(ord('A') + i))
             else:
-                col_titles.append(chr(ord('A') + i + 1))  # 跳过I，直接从J开始（J-P）
+                col_titles.append(chr(ord('A') + i + 1))
 
-        # 添加列标题行
         board_str.append(f"    {' '.join(col_titles)}")
 
-        # 2. 按15到1的顺序生成行号，但使用原始数组顺序
         for display_row_num in range(self.size, 0, -1):
-            # 计算显示行号对应的数组索引
-            # 显示行15 → 索引0，显示行1 → 索引14
-            array_index = self.size - display_row_num
 
-            # 行号对齐：占2位
+            array_index = self.size - display_row_num
             formatted_row_num = f"{display_row_num:2d}"
 
-            # 转换当前行的numpy数据为字符（0→.，1→X，2→O）
             row_chars = []
             for val in self.board[array_index]:
                 if val == 1:
@@ -166,10 +153,8 @@ class ChessBoard:
                 else:
                     row_chars.append('.')
 
-            # 将当前行添加到字符串列表
             board_str.append(f"{formatted_row_num}  {' '.join(row_chars)}")
 
-        # 拼接所有行，用换行符分隔
         return '\n'.join(board_str)
 
     def get_size(self) -> int:
@@ -187,10 +172,8 @@ class ChessBoard:
         differences = []
         for i in range(self.size):
             for j in range(self.size):
-                # 当前棋盘有棋子，另一个棋盘没有
                 if self.board[i, j] != 0 and other.board[i, j] == 0:
                     differences.append((self.board[i, j], (i, j)))
-                # 另一个棋盘有棋子，当前棋盘没有
                 elif self.board[i, j] == 0 and other.board[i, j] != 0:
                     differences.append((other.board[i, j], (i, j)))
         return differences
@@ -205,7 +188,6 @@ class ChessBoard:
 
         for i in range(self.size):
             for j in range(self.size):
-                # 如果另一个棋盘有棋子而当前棋盘没有
                 if other.board[i, j] != 0 and self.board[i, j] == 0:
                     return True
         return False
@@ -221,14 +203,11 @@ class ChessBoard:
         # 检查所有可能的位置
         for i in range(self.size):
             for j in range(self.size):
-                # 跳过空位
                 if self.board[i, j] == 0:
                     continue
 
-                # 当前位置的棋子颜色
                 current_color = self.board[i, j]
 
-                # 检查水平方向(右)
                 if j + 4 < self.size:
                     if (self.board[i, j + 1] == current_color and
                             self.board[i, j + 2] == current_color and
@@ -236,7 +215,6 @@ class ChessBoard:
                             self.board[i, j + 4] == current_color):
                         return current_color
 
-                # 检查垂直方向(下)
                 if i + 4 < self.size:
                     if (self.board[i + 1, j] == current_color and
                             self.board[i + 2, j] == current_color and
@@ -244,7 +222,6 @@ class ChessBoard:
                             self.board[i + 4, j] == current_color):
                         return current_color
 
-                # 检查右下对角线
                 if i + 4 < self.size and j + 4 < self.size:
                     if (self.board[i + 1, j + 1] == current_color and
                             self.board[i + 2, j + 2] == current_color and
@@ -252,7 +229,6 @@ class ChessBoard:
                             self.board[i + 4, j + 4] == current_color):
                         return current_color
 
-                # 检查左下对角线
                 if i + 4 < self.size and j - 4 >= 0:
                     if (self.board[i + 1, j - 1] == current_color and
                             self.board[i + 2, j - 2] == current_color and
@@ -260,32 +236,24 @@ class ChessBoard:
                             self.board[i + 4, j - 4] == current_color):
                         return current_color
 
-        # 检查是否平局(棋盘已满)
         if np.count_nonzero(self.board) == self.size * self.size:
-            return -1  # 平局
+            return -1
 
-        # 游戏未结束
         return 0
 
     def is_empty(self) -> bool:
-        """判断当前棋盘是否为空（无任何落子）
-
-        返回:
-            bool: 如果棋盘为空（所有位置都是0）则返回True，否则返回False
         """
-        # 检查棋盘上所有元素是否都为0
+        判断当前棋盘是否为空（无任何落子）,如果棋盘为空（所有位置都是0）则返回True，否则返回False
+        """
         return np.all(self.board == 0)
 
     def get_hash(self) -> str:
-        """生成当前棋盘状态的唯一hash值
-
-        返回:
-            str: 表示当前棋盘状态的哈希字符串
         """
-        # 将numpy数组转换为字节流，然后计算MD5哈希值
-        # 这种方式生成的哈希值对于相同的棋盘状态是唯一且一致的
+        生成当前棋盘状态的唯一hash值
+        """
         board_bytes = self.board.tobytes()
         return hashlib.md5(board_bytes).hexdigest()
+
 
 @dataclass
 class MoveItem:

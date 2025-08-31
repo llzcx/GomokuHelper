@@ -1,4 +1,4 @@
-import time
+import logging
 from abc import abstractmethod
 from typing import Optional, Dict, Any
 from typing import Tuple, List
@@ -6,10 +6,8 @@ from typing import Tuple, List
 import numpy as np
 
 from src.engine.algorithm.algorithm import AlgorithmEngine
-from src.engine.algorithm.katago.katago_analysis_engine import KataGoAnalysisEngine
 from src.engine.algorithm.katago.katago_gtp_engine import KataGoGTPEngine
 from src.engine.board import ChessBoard, BLACK, MoveItem, WHITE
-from src.engine.util import gtp_2_np
 
 
 class AIEngine:
@@ -76,7 +74,6 @@ class KatagoEngine:
         self.instance: AlgorithmEngine = None
 
     def initialize(self, config: Dict[str, Any] = None) -> bool:
-        # 使用配置参数或默认路径
         if config is None:
             config = {}
 
@@ -85,7 +82,6 @@ class KatagoEngine:
         config_path = config.get('config_path')
         rule = config.get('rule')
         board_size = config.get('board_size')
-        # 根据规则选择配置字符串
         rule_configs = {
             'FREESTYLE': "basicRule=FREESTYLE",
             'RENJU': "basicRule=RENJU",
@@ -93,7 +89,6 @@ class KatagoEngine:
         }
         additional_args = ["-override-config", rule_configs.get(rule, "basicRule=RENJU")]
 
-        # 初始化KataGo引擎
         try:
             katago = KataGoGTPEngine(
                 katago_path=katago_path,
@@ -105,17 +100,15 @@ class KatagoEngine:
             )
             self.instance = katago
         except Exception as e:
-            print(f"Failed to initialize KataGo: {e}")
+            logging.info(f"Failed to initialize KataGo: {e}")
             return False
 
         return True
 
     def analyze(self, board: ChessBoard) -> Tuple[str, List[MoveItem], Dict[str, Any]]:
         try:
-            # 打印棋盘状态
-            print(f"本次请求棋盘状态:\n{board.render_numpy_board()}")
+            logging.info(f"This request is for the status of the chessboard:\n{board.render_numpy_board()}")
 
-            # 调用分析引擎
             initial_player = "PASS"
             play = board.determine_current_player()
             if play == BLACK:
@@ -126,11 +119,10 @@ class KatagoEngine:
             return current_player, best_move_list, analysis_result
 
         except Exception as e:
-            print(f"Analysis failed: {e}")
+            logging.info(f"Analysis failed: {e}")
             return "PASS", [], {}
 
     def get_engine_info(self) -> Dict[str, Any]:
-        # 返回引擎信息
         return {
             'name': 'KataGo',
             'version': '1.0',
@@ -138,6 +130,5 @@ class KatagoEngine:
         }
 
     def close(self):
-        # 关闭KataGo引擎
         if self.instance:
             self.instance.close()

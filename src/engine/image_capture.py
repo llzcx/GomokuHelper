@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional, Any
 import numpy as np
@@ -27,7 +28,6 @@ class ImageCapture(ABC):
         pass
 
 
-# 具体实现示例：屏幕截图采集器
 class ScreenCapture(ImageCapture):
     def __init__(self):
         self.monitor_region = None
@@ -35,7 +35,6 @@ class ScreenCapture(ImageCapture):
 
     def initialize(self, config: dict) -> bool:
         try:
-            # 根据配置选择不同的截图库
             if config.get("tool", "mss") == "mss":
                 import mss
                 self.capture_tool = mss.mss()
@@ -46,7 +45,7 @@ class ScreenCapture(ImageCapture):
             self.monitor_region = config.get("region", {"top": 0, "left": 0, "width": 800, "height": 600})
             return True
         except Exception as e:
-            print(f"ScreenCapture初始化失败: {e}")
+            logging.info(f"ScreenCapture initialization failed: {e}")
             return False
 
     def capture_frame(self) -> Optional[np.ndarray]:
@@ -65,7 +64,7 @@ class ScreenCapture(ImageCapture):
                 ))
                 return np.array(screenshot)
         except Exception as e:
-            print(f"截图失败: {e}")
+            logging.info(f"Screenshot failed: {e}")
             return None
 
     def get_capture_info(self) -> dict:

@@ -35,9 +35,8 @@ report = QTReport()
 
 
 def update_task():
-    # 初始化组件并添加日志
     try:
-        logging.info(f"程序启动,当前模式为: {rule}，开始初始化组件...")
+        logging.info(f"Program startup, current mode is: {rule}，Start initializing components...")
         recognizer.initialize(config={
             "grid_size": grid_size,
             "cell_size": cell_size,
@@ -46,13 +45,13 @@ def update_task():
             "black_threshold": black_threshold,
             "white_threshold": white_threshold,
         })
-        logging.info("棋盘识别器初始化完成")
+        logging.info("Chessboard recognizer initialization completed!")
 
         capture.initialize(config={
             "tool": "mss",
             "region": {"left": left, "top": top, "width": image_size, "height": image_size}
         })
-        logging.info("屏幕捕获器初始化完成")
+        logging.info("Screen capture initialization completed!")
 
         katago.initialize(config={
             "katago_path": katago_path,
@@ -63,8 +62,8 @@ def update_task():
             "visits_threshold": visits_threshold
 
         })
-        logging.info("KataGo引擎初始化完成")
-        logging.info("进入主循环...")
+        logging.info("KataGo engine initialization completed")
+        logging.info("Enter the main loop...")
         while True:
             try:
                 image = capture.capture_frame()
@@ -72,9 +71,9 @@ def update_task():
                 if board.is_effective_chessboard() and board.is_game_over() == 0:
                     player, moves, info = katago.analyze(board)
                     player2ch = "黑方" if player == "B" else "白方" if player == "W" else "PASS"
-                    logging.info(f"============当前执棋: {player2ch}============")
+                    logging.info(f"============Current Chess Execution: {player2ch}============")
                     if player2ch != "PASS":
-                        logging.info(f"最佳走法: {moves}")
+                        logging.info(f"Best way to go: {moves}")
                         report.update(image, board, moves, info)
                     time.sleep(2)
                 else:
@@ -82,20 +81,20 @@ def update_task():
                     time.sleep(2)
 
             except Exception as e:
-                logging.error(f"循环执行出错: {str(e)}", exc_info=True)  # exc_info=True打印堆栈信息
+                logging.error(f"Loop execution error: {str(e)}", exc_info=True)  # exc_info=True打印堆栈信息
                 time.sleep(5)  # 出错后暂停一段时间再重试
 
     except KeyboardInterrupt:
-        logging.info("用户中断程序，开始释放资源...")
+        logging.info("The user interrupts the program and starts releasing resources...")
 
     except Exception as e:
-        logging.critical(f"组件初始化失败: {str(e)}", exc_info=True)
+        logging.critical(f"Component initialization failed: {str(e)}", exc_info=True)
 
     finally:
         capture.release()
         katago.close()
         report.close()
-        logging.info("程序已退出")
+        logging.info("The program has exited")
 
 
 if __name__ == '__main__':

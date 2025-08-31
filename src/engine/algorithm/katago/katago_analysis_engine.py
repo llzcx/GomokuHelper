@@ -1,17 +1,13 @@
 import json
+import logging
 import subprocess
 import time
-from datetime import datetime
 from threading import Thread
-from typing import Tuple, List, Union, Literal, Any, Dict
-
-import numpy as np
-import sgfmill.ascii_boards
-import sgfmill.boards
+from typing import Tuple, Union, Literal, Any, Dict
 
 from src.engine.algorithm.algorithm import AlgorithmEngine
 from src.engine.board import ChessBoard, BLACK, WHITE, MoveItem
-from src.engine.util import object_to_json_with_encoder, gtp_2_np
+from src.engine.util import gtp_2_np
 
 Color = Union[Literal["b"], Literal["w"]]
 Move = Union[None, Literal["pass"], Tuple[int, int]]
@@ -45,10 +41,10 @@ class KataGoAnalysisEngine(AlgorithmEngine):
                 data = katago_.stderr.readline()
                 time.sleep(0)
                 if data:
-                    print("KataGo: ", data.decode(), end="")
+                    logging.info("KataGo: " +data.decode())
             data = katago_.stderr.read()
             if data:
-                print("KataGo: ", data.decode(), end="")
+                logging.info("KataGo: " + data.decode())
 
         self.stderrthread = Thread(target=print_forever)
         self.stderrthread.start()
@@ -98,7 +94,7 @@ class KataGoAnalysisEngine(AlgorithmEngine):
 
         # 检查是否有分析结果
         if "error" in analysis_result:
-            print(analysis_result["error"])
+            logging.info(analysis_result["error"])
             return "", [], analysis_result
 
         # 获取最佳着法
@@ -121,6 +117,6 @@ class KataGoAnalysisEngine(AlgorithmEngine):
                 raise Exception("Unexpected katago exit")
             line = self.katago.stdout.readline()
             line = line.decode().strip()
-        print(f"query_raw json line:\n {line}")
+        logging.info(f"query_raw json line:\n {line}")
         response = json.loads(line)
         return response

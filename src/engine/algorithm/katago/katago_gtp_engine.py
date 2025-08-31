@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import threading
 import time
@@ -41,11 +42,11 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.state_lock = threading.Lock()
         self.query_total = 0
         self.refresh_total = 0
-        print("KataGo GTP Engine is currently undergoing initialization...")
+        logging.info("KataGo GTP Engine is currently undergoing initialization...")
         time.sleep(20)
         self.async_handler()
         time.sleep(2)
-        print("KataGo GTP Engine Initialization successful!")
+        logging.info("KataGo GTP Engine Initialization successful!")
 
     def read_state(self):
         state = True
@@ -63,17 +64,17 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.katago.stdin.close()
 
     def query(self, initial_board: ChessBoard, initial_player='b'):
-        print(self.get_engine_info())
+        logging.info(self.get_engine_info())
         # 获取棋盘尺寸
         board_size = initial_board.get_size()
         self.query_total += 1
         diff_list = []
         if initial_board.has_extra_pieces(self.cache_board):
-            print("=====The chessboard status is inconsistent and needs to be refreshed=====")
+            logging.info("=====The chessboard status is inconsistent and needs to be refreshed=====")
             self.cache_board.reset()
-            print(f"self.cache_board:\n{self.cache_board.render_numpy_board()}")
-            print(f"initial_board   :\n{initial_board.render_numpy_board()}")
-            print("=====The chessboard status is inconsistent and needs to be refreshed=====")
+            logging.info(f"self.cache_board:\n{self.cache_board.render_numpy_board()}")
+            logging.info(f"initial_board   :\n{initial_board.render_numpy_board()}")
+            logging.info("=====The chessboard status is inconsistent and needs to be refreshed=====")
             diff_list = initial_board.diff(self.cache_board)
             self.reset()
             self.refresh_total += 1
@@ -118,7 +119,7 @@ class KataGoGTPEngine(AlgorithmEngine):
         return current
 
     def exec_async(self, query: str):
-        print(f"[EXEC Command] input: {query}")
+        logging.info(f"[EXEC Command] input: {query}")
         self.katago.stdin.write(query + "\n")
         self.katago.stdin.flush()
 
@@ -134,7 +135,7 @@ class KataGoGTPEngine(AlgorithmEngine):
             if len(line.strip()) == 0 or line.strip() == "=":
                 continue
             if not line.startswith("info"):
-                print(f"Unexpected katago error: {line}")
+                logging.error(f"Unexpected katago error: {line}")
                 continue
             res_list = parse_gtp_info(line)
             best_move_list = []
@@ -153,7 +154,7 @@ class KataGoGTPEngine(AlgorithmEngine):
 
             with self.res_lock:
                 self.best_moves_shared = (current_play, best_move_list)
-        print("handler_stdout stop...")
+        logging.info("handler_stdout stop...")
 
     def handler_stderr(self):
         while self.read_state():
@@ -164,8 +165,8 @@ class KataGoGTPEngine(AlgorithmEngine):
                     raise Exception("Unexpected katago exit")
                 line = self.katago.stderr.readline()
                 line = line.strip()
-            print(f"[GTP Command ERROR] Wrong output: {line}")
-        print("handler_stderr stop...")
+            logging.error(f"[GTP Command ERROR] Wrong output: {line}")
+        logging.info("handler_stderr stop...")
 
     def async_handler(self):
         self.stdout_thread = Thread(target=self.handler_stdout)
