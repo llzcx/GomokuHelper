@@ -154,7 +154,7 @@ class KataGoGTPEngine(AlgorithmEngine):
 
             with self.res_lock:
                 self.best_moves_shared = (current_play, best_move_list)
-        logging.info("handler_stdout stop...")
+        logging.info("handle stdout thread stop...")
 
     def handler_stderr(self):
         while self.read_state():
@@ -166,7 +166,7 @@ class KataGoGTPEngine(AlgorithmEngine):
                 line = self.katago.stderr.readline()
                 line = line.strip()
             logging.warn(f"[GTP Command ERROR] Wrong output: {line}")
-        logging.info("handler_stderr stop...")
+        logging.info("handle stderr thread stop...")
 
     def async_handler(self):
         self.stdout_thread = Thread(target=self.handler_stdout)
