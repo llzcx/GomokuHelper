@@ -20,6 +20,7 @@ config_path = r"..\engine\algorithm\katago\gtp_engine.cfg"
 #rule = "FREESTYLE"
 rule = "RENJU"
 visits_threshold = 10000
+chess_manual = 5000
 black_threshold = 0.2
 white_threshold = 0.7
 
@@ -59,7 +60,8 @@ def update_task():
             "config_path": config_path,
             "rule": rule,
             "board_size": grid_size,
-            "visits_threshold": visits_threshold
+            "visits_threshold": visits_threshold,
+            "chess_manual": chess_manual,
 
         })
         logging.info("KataGo engine initialization completed")

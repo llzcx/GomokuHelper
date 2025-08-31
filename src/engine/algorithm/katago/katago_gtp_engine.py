@@ -19,7 +19,7 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.stderr_thread = None
         self.board_size = board_size
         self.visits_threshold = config.get("visits_threshold", 10000)
-        self.cache = AnalyzedLRUCache(maxsize=1000)
+        self.cache = AnalyzedLRUCache(maxsize=config.get("chess_manual", 5000))
         if additional_args is None:
             additional_args = []
         self.query_counter = 0
