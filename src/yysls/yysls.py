@@ -17,10 +17,12 @@ top = 69  # Distance from the top of the chessboard
 katago_path = r"D:\project\model\KataGomo20250206\engine\gom15x_trt.exe"
 model_path = r"D:\project\model\KataGomo20250206\weights\zhizi_renju28b_s1600.bin.gz"
 config_path = r"..\engine\algorithm\katago\gtp_engine.cfg"
-#rule = "FREESTYLE"
-rule = "RENJU"
-visits_threshold = 10000
-chess_manual = 5000
+rule = "FREESTYLE"
+#rule = "RENJU"
+visits_threshold = 200
+chess_manual_size = 5000
+#chess_manual_path = r"..\engine\algorithm\katago\chess_manual_dict_for_renju.pkl"
+chess_manual_path = r"..\engine\algorithm\katago\chess_manual_dict_for_freestyle.pkl"
 black_threshold = 0.2
 white_threshold = 0.7
 
@@ -61,7 +63,8 @@ def update_task():
             "rule": rule,
             "board_size": grid_size,
             "visits_threshold": visits_threshold,
-            "chess_manual": chess_manual,
+            "chess_manual_size": chess_manual_size,
+            "chess_manual_path": chess_manual_path,
 
         })
         logging.info("KataGo engine initialization completed")

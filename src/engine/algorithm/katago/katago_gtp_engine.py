@@ -15,11 +15,14 @@ from src.engine.util import np_to_gtp, chess2color, parse_gtp_info, gtp_2_np, An
 class KataGoGTPEngine(AlgorithmEngine):
 
     def __init__(self, katago_path: str, config_path: str, model_path: str, additional_args=None, board_size=15, config: Dict[str, Any] = None):
+        self.save_thread = None
         self.stdout_thread = None
         self.stderr_thread = None
         self.board_size = board_size
-        self.visits_threshold = config.get("visits_threshold", 10000)
-        self.cache = AnalyzedLRUCache(maxsize=config.get("chess_manual", 5000))
+        self.visits_threshold = config.get("visits_threshold", 2000)
+        self.chess_manual_path = config.get("chess_manual_path")
+        self.cache = AnalyzedLRUCache.load_from_file(self.chess_manual_path, maxsize=config.get("chess_manual_size", 5000))
+
         if additional_args is None:
             additional_args = []
         self.query_counter = 0
@@ -36,7 +39,7 @@ class KataGoGTPEngine(AlgorithmEngine):
         )
         self.cache_board = ChessBoard(size=self.board_size)
         self.katago = katago
-        self.best_moves_shared = None
+        self.best_moves_shared = "pass", []
         self.res_lock = threading.Lock()
         self.running = True
         self.state_lock = threading.Lock()
@@ -47,6 +50,7 @@ class KataGoGTPEngine(AlgorithmEngine):
         self.async_handler()
         time.sleep(2)
         logging.info("KataGo GTP Engine Initialization successful!")
+        #self.run_scheduled_task()
 
     def read_state(self):
         state = True
@@ -182,7 +186,15 @@ class KataGoGTPEngine(AlgorithmEngine):
         else:
             refresh_rate = self.refresh_total / self.query_total
 
-        return (f"=============query cache hit rate: {hit_rate:.2f}%=============\n"
+        return (f"\n=============query cache hit rate: {hit_rate:.2f}%=============\n"
                 f"=============query refresh count : {self.refresh_total}次=============\n"
                 f"=============query refresh rate  : {refresh_rate:.2f}%=============")
 
+    def save_task(self):
+        while self.read_state():
+            time.sleep(5)
+            self.cache.save_to_file(self.chess_manual_path)
+
+    def run_scheduled_task(self):
+        self.save_thread = Thread(target=self.save_task)
+        self.save_thread.start()

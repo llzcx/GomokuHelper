@@ -244,3 +244,10 @@ class AnalyzedLRUCache(LRUCache):
     def reset_stats(self):
         self.hits = 0
         self.misses = 0
+
+    @classmethod
+    def load_from_file(cls, chess_manual_path, maxsize):
+        return cls(maxsize)
+
+    def save_to_file(self, chess_manual_path):
+        pass

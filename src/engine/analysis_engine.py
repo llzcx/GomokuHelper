@@ -107,7 +107,7 @@ class KatagoEngine:
 
     def analyze(self, board: ChessBoard) -> Tuple[str, List[MoveItem], Dict[str, Any]]:
         try:
-            logging.info(f"This request is for the status of the chessboard:\n{board.render_numpy_board()}")
+            logging.info(f"\nThis request is for the status of the chessboard:\n{board.render_numpy_board()}")
 
             initial_player = "PASS"
             play = board.determine_current_player()
@@ -119,7 +119,7 @@ class KatagoEngine:
             return current_player, best_move_list, analysis_result
 
         except Exception as e:
-            logging.info(f"Analysis failed: {e}")
+            logging.error(f"Analysis failed: {e}")
             return "PASS", [], {}
 
     def get_engine_info(self) -> Dict[str, Any]:
