@@ -5,25 +5,25 @@ GomokuHelper致力于使用AI协助你游玩任何五子棋游戏。
 ## 支持的数据源类型-DataSource
 | 序号 | 名称          | 状态       |
 |------|-------------|------------|
-| 1    | windows全屏截图 | <span style="color: green;">√</span> |
+| 1    | windows全屏截图 | ✅  |
 
 ## 支持的五子棋AI-Algorithm
 
 | 序号 | 名称     | 状态       |
 |------|--------|------------|
-| 1    | Katago | <span style="color: green;">√</span> |
+| 1    | Katago | ✅  |
 
 ## 支持的图形化显示-UseReport
 
 | 序号 | 名称     | 状态       |
 |------|--------|------------|
-| 1    | PyQt5 | <span style="color: green;">√</span> |
+| 1    | PyQt5 | ✅  |
 
 ## 五子棋游戏适配
 
 | 序号 | 名称           | 状态       |
 |------|--------------|------------|
-| 1    | 2K分辨率下的燕云十六声 | <span style="color: green;">√</span> |
+| 1    | 2K分辨率下的燕云十六声 | ✅  |
 
 # 快速开始
 1. 环境 Windows10，Python 3.11.3, 一块显卡
@@ -51,6 +51,7 @@ GomokuHelper致力于使用AI协助你游玩任何五子棋游戏。
 | `black_threshold` | `float`  | 无默认值     | 黑棋识别的颜色归一化阈值                                                 | 阈值越小，要求棋子区域颜色越接近纯黑（RGB趋近0,0,0）才能判定为黑棋，抗干扰性更强                              |
 | `white_threshold` | `float`  | 无默认值     | 白棋识别的颜色归一化阈值                                                 | 阈值越大，要求棋子区域颜色越接近纯白（RGB趋近255,255,255）才能判定为白棋   |
 
+更多模型参数参考src/engine/algorithm/katago/gtp_engine.cfg
 
 # 效果预览
 ![preview.png](img/preview.png)
